@@ -60,10 +60,10 @@ function filterTodayData(data) {
     return [];
   }
 
-  const today = moment().format('YYYY-MM-DD');
-  
+  const today = moment().format("YYYY-MM-DD");
+
   return data.result.records.filter((item) => {
-    const itemDate = moment(item.fecha_vigencia).format('YYYY-MM-DD');
+    const itemDate = moment(item.fecha_vigencia).format("YYYY-MM-DD");
     return itemDate === today;
   });
 }
@@ -71,8 +71,8 @@ function filterTodayData(data) {
 // Function to group data by field
 function groupDataBy(data, field) {
   const grouped = {};
-  data.forEach(item => {
-    const key = item[field] || 'Sin especificar';
+  data.forEach((item) => {
+    const key = item[field] || "Sin especificar";
     if (!grouped[key]) {
       grouped[key] = [];
     }
@@ -94,70 +94,109 @@ function analyzeData(todayData, allData) {
       activeStationsToday: 0,
       activeStationsWithPrices: 0,
       percentageActive: 0,
-      percentageWithPrices: 0
+      percentageWithPrices: 0,
     },
     flagCompanyStats: {
       totalBrands: 0,
       activeBrandsToday: 0,
       activeBrandsWithPrices: 0,
-      percentageActive: 0
-    }
+      percentageActive: 0,
+    },
   };
 
   // Group by product
-  const productGroups = groupDataBy(todayData, 'producto');
-  analysis.byProduct = Object.keys(productGroups).map(product => ({
-    name: product,
-    count: productGroups[product].length,
-    records: productGroups[product]
-  })).sort((a, b) => b.count - a.count);
+  const productGroups = groupDataBy(todayData, "producto");
+  analysis.byProduct = Object.keys(productGroups)
+    .map((product) => ({
+      name: product,
+      count: productGroups[product].length,
+      records: productGroups[product],
+    }))
+    .sort((a, b) => b.count - a.count);
 
   // Group by province
-  const provinceGroups = groupDataBy(todayData, 'provincia');
-  analysis.byProvince = Object.keys(provinceGroups).map(province => ({
-    name: province,
-    count: provinceGroups[province].length,
-    records: provinceGroups[province]
-  })).sort((a, b) => b.count - a.count);
+  const provinceGroups = groupDataBy(todayData, "provincia");
+  analysis.byProvince = Object.keys(provinceGroups)
+    .map((province) => ({
+      name: province,
+      count: provinceGroups[province].length,
+      records: provinceGroups[province],
+    }))
+    .sort((a, b) => b.count - a.count);
 
   // Group by gas station (empresa)
-  const gasStationGroups = groupDataBy(todayData, 'empresa');
-  analysis.byGasStation = Object.keys(gasStationGroups).map(station => ({
-    name: station,
-    count: gasStationGroups[station].length,
-    records: gasStationGroups[station]
-  })).sort((a, b) => b.count - a.count);
+  const gasStationGroups = groupDataBy(todayData, "empresa");
+  analysis.byGasStation = Object.keys(gasStationGroups)
+    .map((station) => ({
+      name: station,
+      count: gasStationGroups[station].length,
+      records: gasStationGroups[station],
+    }))
+    .sort((a, b) => b.count - a.count);
 
   // Group by flag company (marca)
-  const flagCompanyGroups = groupDataBy(todayData, 'empresabandera');
-  analysis.byFlagCompany = Object.keys(flagCompanyGroups).map(company => ({
-    name: company,
-    count: flagCompanyGroups[company].length,
-    records: flagCompanyGroups[company]
-  })).sort((a, b) => b.count - a.count);
+  const flagCompanyGroups = groupDataBy(todayData, "empresabandera");
+  analysis.byFlagCompany = Object.keys(flagCompanyGroups)
+    .map((company) => ({
+      name: company,
+      count: flagCompanyGroups[company].length,
+      records: flagCompanyGroups[company],
+    }))
+    .sort((a, b) => b.count - a.count);
 
   // Calculate gas station statistics (Empresa = Estación de Servicio)
-  const totalUniqueStations = new Set(allData.map(item => item.idempresa).filter(Boolean));
-  const activeStationsToday = new Set(todayData.map(item => item.idempresa).filter(Boolean));
-  const activeStationsWithPrices = new Set(todayData.filter(item => item.precio && item.precio > 0).map(item => item.idempresa));
-  
+  const totalUniqueStations = new Set(
+    allData.map((item) => item.idempresa).filter(Boolean)
+  );
+  const activeStationsToday = new Set(
+    todayData.map((item) => item.idempresa).filter(Boolean)
+  );
+  const activeStationsWithPrices = new Set(
+    todayData
+      .filter((item) => item.precio && item.precio > 0)
+      .map((item) => item.idempresa)
+  );
+
   analysis.gasStationStats = {
     totalStations: totalUniqueStations.size,
     activeStationsToday: activeStationsToday.size,
     activeStationsWithPrices: activeStationsWithPrices.size,
-    percentageActive: totalUniqueStations.size > 0 ? ((activeStationsToday.size / totalUniqueStations.size) * 100).toFixed(2) : 0,
-    percentageWithPrices: activeStationsToday.size > 0 ? ((activeStationsWithPrices.size / activeStationsToday.size) * 100).toFixed(2) : 0
+    percentageActive:
+      totalUniqueStations.size > 0
+        ? ((activeStationsToday.size / totalUniqueStations.size) * 100).toFixed(
+            2
+          )
+        : 0,
+    percentageWithPrices:
+      activeStationsToday.size > 0
+        ? (
+            (activeStationsWithPrices.size / activeStationsToday.size) *
+            100
+          ).toFixed(2)
+        : 0,
   };
 
   // Calculate flag company statistics (Empresa Bandera = Marca)
-  const activeBrandsToday = new Set(todayData.map(item => item.empresabandera).filter(Boolean));
-  const activeBrandsWithPrices = new Set(todayData.filter(item => item.precio && item.precio > 0).map(item => item.empresabandera));
-  
+  const activeBrandsToday = new Set(
+    todayData.map((item) => item.empresabandera).filter(Boolean)
+  );
+  const activeBrandsWithPrices = new Set(
+    todayData
+      .filter((item) => item.precio && item.precio > 0)
+      .map((item) => item.empresabandera)
+  );
+
   analysis.flagCompanyStats = {
     totalBrands: activeBrandsToday.size,
     activeBrandsToday: activeBrandsToday.size,
     activeBrandsWithPrices: activeBrandsWithPrices.size,
-    percentageActive: activeBrandsToday.size > 0 ? ((activeBrandsWithPrices.size / activeBrandsToday.size) * 100).toFixed(2) : 0
+    percentageActive:
+      activeBrandsToday.size > 0
+        ? (
+            (activeBrandsWithPrices.size / activeBrandsToday.size) *
+            100
+          ).toFixed(2)
+        : 0,
   };
 
   return analysis;
@@ -167,7 +206,7 @@ function analyzeData(todayData, allData) {
 function generateReport(apiData, startDate, endDate) {
   const reportDate = moment().format("DD/MM/YYYY HH:mm:ss");
   const today = moment().format("DD/MM/YYYY");
-  
+
   // Get today's data for analysis
   const todayData = filterTodayData(apiData);
   const allData = apiData.result ? apiData.result.records : [];
@@ -336,27 +375,37 @@ function generateReport(apiData, startDate, endDate) {
                 <div class="card">
                     <div class="card-content">
                         <h3>Estaciones Activas</h3>
-                        <p>de ${analysis.gasStationStats.totalStations} estaciones totales</p>
+                        <p>de ${
+                          analysis.gasStationStats.totalStations
+                        } estaciones totales</p>
                     </div>
-                    <div class="number">${analysis.gasStationStats.activeStationsToday}</div>
+                    <div class="number">${
+                      analysis.gasStationStats.activeStationsToday
+                    }</div>
                 </div>
                 <div class="card">
                     <div class="card-content">
                         <h3>Marcas Activas</h3>
                         <p>Marcas que reportaron hoy</p>
                     </div>
-                    <div class="number">${analysis.flagCompanyStats.activeBrandsToday}</div>
+                    <div class="number">${
+                      analysis.flagCompanyStats.activeBrandsToday
+                    }</div>
                 </div>
                 <div class="card">
                     <div class="card-content">
                         <h3>Cobertura de Red</h3>
                         <p>Estaciones activas del total</p>
                     </div>
-                    <div class="number">${analysis.gasStationStats.percentageActive}%</div>
+                    <div class="number">${
+                      analysis.gasStationStats.percentageActive
+                    }%</div>
                 </div>
             </div>
 
-            ${analysis.totalRecords > 0 ? `
+            ${
+              analysis.totalRecords > 0
+                ? `
             <div class="section">
                 <h2>📈 Nuevos Registros por Producto (Hoy)</h2>
                 <table>
@@ -368,13 +417,20 @@ function generateReport(apiData, startDate, endDate) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${analysis.byProduct.map(product => `
+                        ${analysis.byProduct
+                          .map(
+                            (product) => `
                         <tr>
                             <td>${product.name}</td>
                             <td>${product.count}</td>
-                            <td class="percentage">${((product.count / analysis.totalRecords) * 100).toFixed(1)}%</td>
+                            <td class="percentage">${(
+                              (product.count / analysis.totalRecords) *
+                              100
+                            ).toFixed(1)}%</td>
                         </tr>
-                        `).join('')}
+                        `
+                          )
+                          .join("")}
                     </tbody>
                 </table>
             </div>
@@ -390,13 +446,21 @@ function generateReport(apiData, startDate, endDate) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${analysis.byProvince.sort((a, b) => b.count - a.count).map(province => `
+                        ${analysis.byProvince
+                          .sort((a, b) => b.count - a.count)
+                          .map(
+                            (province) => `
                         <tr>
                             <td>${province.name}</td>
                             <td>${province.count}</td>
-                            <td class="percentage">${((province.count / analysis.totalRecords) * 100).toFixed(1)}%</td>
+                            <td class="percentage">${(
+                              (province.count / analysis.totalRecords) *
+                              100
+                            ).toFixed(1)}%</td>
                         </tr>
-                        `).join('')}
+                        `
+                          )
+                          .join("")}
                     </tbody>
                 </table>
             </div>
@@ -413,13 +477,21 @@ function generateReport(apiData, startDate, endDate) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${analysis.byFlagCompany.sort((a, b) => b.count - a.count).map(company => `
+                        ${analysis.byFlagCompany
+                          .sort((a, b) => b.count - a.count)
+                          .map(
+                            (company) => `
                         <tr>
                             <td>${company.name}</td>
                             <td>${company.count}</td>
-                            <td class="percentage">${((company.count / analysis.totalRecords) * 100).toFixed(1)}%</td>
+                            <td class="percentage">${(
+                              (company.count / analysis.totalRecords) *
+                              100
+                            ).toFixed(1)}%</td>
                         </tr>
-                        `).join('')}
+                        `
+                          )
+                          .join("")}
                     </tbody>
                 </table>
             </div>
@@ -437,27 +509,37 @@ function generateReport(apiData, startDate, endDate) {
                     <tbody>
                         <tr>
                             <td>Total de Estaciones Registradas</td>
-                            <td><strong>${analysis.gasStationStats.totalStations}</strong></td>
+                            <td><strong>${
+                              analysis.gasStationStats.totalStations
+                            }</strong></td>
                             <td>Estaciones de servicio únicas en todo el sistema</td>
                         </tr>
                         <tr>
                             <td>Estaciones Activas Hoy</td>
-                            <td><strong>${analysis.gasStationStats.activeStationsToday}</strong></td>
+                            <td><strong>${
+                              analysis.gasStationStats.activeStationsToday
+                            }</strong></td>
                             <td>Estaciones que reportaron precios en el día</td>
                         </tr>
                         <tr>
                             <td>Estaciones con Precios Válidos</td>
-                            <td><strong>${analysis.gasStationStats.activeStationsWithPrices}</strong></td>
+                            <td><strong>${
+                              analysis.gasStationStats.activeStationsWithPrices
+                            }</strong></td>
                             <td>Estaciones con precios informados (> 0)</td>
                         </tr>
                         <tr>
                             <td>Cobertura de Red</td>
-                            <td><strong class="percentage">${analysis.gasStationStats.percentageActive}%</strong></td>
+                            <td><strong class="percentage">${
+                              analysis.gasStationStats.percentageActive
+                            }%</strong></td>
                             <td>Porcentaje de estaciones activas del total registrado</td>
                         </tr>
                         <tr>
                             <td>Calidad de Información</td>
-                            <td><strong class="percentage">${analysis.gasStationStats.percentageWithPrices}%</strong></td>
+                            <td><strong class="percentage">${
+                              analysis.gasStationStats.percentageWithPrices
+                            }%</strong></td>
                             <td>Porcentaje de estaciones activas con precios válidos</td>
                         </tr>
                     </tbody>
@@ -477,28 +559,36 @@ function generateReport(apiData, startDate, endDate) {
                     <tbody>
                         <tr>
                             <td>Marcas Activas Hoy</td>
-                            <td><strong>${analysis.flagCompanyStats.activeBrandsToday}</strong></td>
+                            <td><strong>${
+                              analysis.flagCompanyStats.activeBrandsToday
+                            }</strong></td>
                             <td>Marcas que reportaron precios en el día</td>
                         </tr>
                         <tr>
                             <td>Marcas con Precios Válidos</td>
-                            <td><strong>${analysis.flagCompanyStats.activeBrandsWithPrices}</strong></td>
+                            <td><strong>${
+                              analysis.flagCompanyStats.activeBrandsWithPrices
+                            }</strong></td>
                             <td>Marcas con precios informados (> 0)</td>
                         </tr>
                         <tr>
                             <td>Calidad de Información por Marca</td>
-                            <td><strong class="percentage">${analysis.flagCompanyStats.percentageActive}%</strong></td>
+                            <td><strong class="percentage">${
+                              analysis.flagCompanyStats.percentageActive
+                            }%</strong></td>
                             <td>Porcentaje de marcas activas con precios válidos</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            ` : `
+            `
+                : `
             <div class="no-data">
                 <h3>No hay datos disponibles para el día de hoy</h3>
                 <p>No se encontraron registros nuevos para la fecha ${today}</p>
             </div>
-            `}
+            `
+            }
         </div>
         
         <div class="footer">
@@ -518,9 +608,9 @@ async function sendEmail(reportContent, startDate, endDate) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_RECIPIENTS,
-    subject: `📊 Reporte Precios Combustibles - ${today}`,
+    subject: `🔴 Reporte Precios Combustibles - ${today}`,
     text: `Reporte de precios de combustibles del ${today}. Ver archivo adjunto HTML para el reporte completo.`,
-    html: reportContent
+    html: reportContent,
   };
 
   try {
@@ -557,10 +647,10 @@ async function executeReportWorkflow(startDate, endDate) {
     const emailResult = await sendEmail(reportContent, startDate, endDate);
 
     console.log("Report workflow completed successfully");
-    
+
     // Get today's data count for the result
     const todayData = filterTodayData(apiData);
-    
+
     return {
       success: true,
       totalRecords: Array.isArray(filteredData) ? filteredData.length : 1,
