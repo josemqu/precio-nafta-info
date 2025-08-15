@@ -47,8 +47,8 @@ function filterDataByDate(data, startDate, endDate) {
   const end = moment(endDate);
 
   return data.result.records.filter((item) => {
-    // Argentina energy API uses 'fecha' field
-    const itemDate = moment(item.fecha || item.date || item.created_at || item.timestamp);
+    // Argentina energy API uses 'fecha_vigencia' field
+    const itemDate = moment(item.fecha_vigencia);
     return itemDate.isBetween(start, end, null, "[]");
   });
 }
@@ -63,7 +63,7 @@ function filterTodayData(data) {
   const today = moment().format('YYYY-MM-DD');
   
   return data.result.records.filter((item) => {
-    const itemDate = moment(item.fecha).format('YYYY-MM-DD');
+    const itemDate = moment(item.fecha_vigencia).format('YYYY-MM-DD');
     return itemDate === today;
   });
 }
@@ -82,16 +82,25 @@ function groupDataBy(data, field) {
 }
 
 // Function to analyze data and create statistics
-function analyzeData(todayData) {
+function analyzeData(todayData, allData) {
   const analysis = {
     totalRecords: todayData.length,
     byProduct: {},
     byProvince: {},
+    byGasStation: {},
     byFlagCompany: {},
+    gasStationStats: {
+      totalStations: 0,
+      activeStationsToday: 0,
+      activeStationsWithPrices: 0,
+      percentageActive: 0,
+      percentageWithPrices: 0
+    },
     flagCompanyStats: {
-      totalCompanies: 0,
-      companiesWithPrices: 0,
-      percentage: 0
+      totalBrands: 0,
+      activeBrandsToday: 0,
+      activeBrandsWithPrices: 0,
+      percentageActive: 0
     }
   };
 
@@ -101,7 +110,7 @@ function analyzeData(todayData) {
     name: product,
     count: productGroups[product].length,
     records: productGroups[product]
-  }));
+  })).sort((a, b) => b.count - a.count);
 
   // Group by province
   const provinceGroups = groupDataBy(todayData, 'provincia');
@@ -109,24 +118,46 @@ function analyzeData(todayData) {
     name: province,
     count: provinceGroups[province].length,
     records: provinceGroups[province]
-  }));
+  })).sort((a, b) => b.count - a.count);
 
-  // Group by flag company
+  // Group by gas station (empresa)
+  const gasStationGroups = groupDataBy(todayData, 'empresa');
+  analysis.byGasStation = Object.keys(gasStationGroups).map(station => ({
+    name: station,
+    count: gasStationGroups[station].length,
+    records: gasStationGroups[station]
+  })).sort((a, b) => b.count - a.count);
+
+  // Group by flag company (marca)
   const flagCompanyGroups = groupDataBy(todayData, 'empresabandera');
   analysis.byFlagCompany = Object.keys(flagCompanyGroups).map(company => ({
     name: company,
     count: flagCompanyGroups[company].length,
     records: flagCompanyGroups[company]
-  }));
+  })).sort((a, b) => b.count - a.count);
 
-  // Calculate flag company statistics
-  const uniqueCompanies = new Set(todayData.map(item => item.empresabandera).filter(Boolean));
-  const companiesWithPrices = new Set(todayData.filter(item => item.precio).map(item => item.empresabandera));
+  // Calculate gas station statistics (Empresa = Estación de Servicio)
+  const totalUniqueStations = new Set(allData.map(item => item.idempresa).filter(Boolean));
+  const activeStationsToday = new Set(todayData.map(item => item.idempresa).filter(Boolean));
+  const activeStationsWithPrices = new Set(todayData.filter(item => item.precio && item.precio > 0).map(item => item.idempresa));
+  
+  analysis.gasStationStats = {
+    totalStations: totalUniqueStations.size,
+    activeStationsToday: activeStationsToday.size,
+    activeStationsWithPrices: activeStationsWithPrices.size,
+    percentageActive: totalUniqueStations.size > 0 ? ((activeStationsToday.size / totalUniqueStations.size) * 100).toFixed(2) : 0,
+    percentageWithPrices: activeStationsToday.size > 0 ? ((activeStationsWithPrices.size / activeStationsToday.size) * 100).toFixed(2) : 0
+  };
+
+  // Calculate flag company statistics (Empresa Bandera = Marca)
+  const activeBrandsToday = new Set(todayData.map(item => item.empresabandera).filter(Boolean));
+  const activeBrandsWithPrices = new Set(todayData.filter(item => item.precio && item.precio > 0).map(item => item.empresabandera));
   
   analysis.flagCompanyStats = {
-    totalCompanies: uniqueCompanies.size,
-    companiesWithPrices: companiesWithPrices.size,
-    percentage: uniqueCompanies.size > 0 ? ((companiesWithPrices.size / uniqueCompanies.size) * 100).toFixed(2) : 0
+    totalBrands: activeBrandsToday.size,
+    activeBrandsToday: activeBrandsToday.size,
+    activeBrandsWithPrices: activeBrandsWithPrices.size,
+    percentageActive: activeBrandsToday.size > 0 ? ((activeBrandsWithPrices.size / activeBrandsToday.size) * 100).toFixed(2) : 0
   };
 
   return analysis;
@@ -139,7 +170,8 @@ function generateReport(apiData, startDate, endDate) {
   
   // Get today's data for analysis
   const todayData = filterTodayData(apiData);
-  const analysis = analyzeData(todayData);
+  const allData = apiData.result ? apiData.result.records : [];
+  const analysis = analyzeData(todayData, allData);
 
   const htmlReport = `
 <!DOCTYPE html>
@@ -185,26 +217,54 @@ function generateReport(apiData, startDate, endDate) {
         }
         .summary-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
             margin-bottom: 40px;
         }
         .card {
             background: #f8f9fa;
             border-left: 4px solid #667eea;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-content {
+            flex: 1;
         }
         .card h3 {
-            margin: 0 0 10px 0;
+            margin: 0 0 5px 0;
             color: #667eea;
-            font-size: 1.2em;
+            font-size: 1em;
+            font-weight: 600;
+        }
+        .card p {
+            margin: 0;
+            font-size: 0.85em;
+            color: #666;
+            line-height: 1.3;
         }
         .card .number {
-            font-size: 2.5em;
+            font-size: 2em;
             font-weight: bold;
             color: #333;
-            margin: 10px 0;
+            margin-left: 15px;
+            min-width: 60px;
+            text-align: right;
+        }
+        @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                flex-direction: column;
+                text-align: center;
+            }
+            .card .number {
+                margin-left: 0;
+                margin-top: 10px;
+            }
         }
         .section {
             margin-bottom: 40px;
@@ -267,36 +327,44 @@ function generateReport(apiData, startDate, endDate) {
         <div class="content">
             <div class="summary-cards">
                 <div class="card">
-                    <h3>Total de Registros</h3>
+                    <div class="card-content">
+                        <h3>Registros Nuevos Hoy</h3>
+                        <p>Actualizaciones de precios del día</p>
+                    </div>
                     <div class="number">${analysis.totalRecords}</div>
-                    <p>Registros del día de hoy</p>
                 </div>
                 <div class="card">
-                    <h3>Productos</h3>
-                    <div class="number">${analysis.byProduct.length}</div>
-                    <p>Tipos de combustible</p>
+                    <div class="card-content">
+                        <h3>Estaciones Activas</h3>
+                        <p>de ${analysis.gasStationStats.totalStations} estaciones totales</p>
+                    </div>
+                    <div class="number">${analysis.gasStationStats.activeStationsToday}</div>
                 </div>
                 <div class="card">
-                    <h3>Provincias</h3>
-                    <div class="number">${analysis.byProvince.length}</div>
-                    <p>Con datos reportados</p>
+                    <div class="card-content">
+                        <h3>Marcas Activas</h3>
+                        <p>Marcas que reportaron hoy</p>
+                    </div>
+                    <div class="number">${analysis.flagCompanyStats.activeBrandsToday}</div>
                 </div>
                 <div class="card">
-                    <h3>Empresas Bandera</h3>
-                    <div class="number">${analysis.flagCompanyStats.totalCompanies}</div>
-                    <p>Empresas registradas</p>
+                    <div class="card-content">
+                        <h3>Cobertura de Red</h3>
+                        <p>Estaciones activas del total</p>
+                    </div>
+                    <div class="number">${analysis.gasStationStats.percentageActive}%</div>
                 </div>
             </div>
 
             ${analysis.totalRecords > 0 ? `
             <div class="section">
-                <h2>📈 Registros por Producto</h2>
+                <h2>📈 Nuevos Registros por Producto (Hoy)</h2>
                 <table>
                     <thead>
                         <tr>
                             <th>Producto</th>
-                            <th>Cantidad de Registros</th>
-                            <th>Porcentaje</th>
+                            <th>Actualizaciones Hoy</th>
+                            <th>Porcentaje del Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -312,13 +380,13 @@ function generateReport(apiData, startDate, endDate) {
             </div>
 
             <div class="section">
-                <h2>🗺️ Registros por Provincia</h2>
+                <h2>🗺️ Nuevos Registros por Provincia (Hoy)</h2>
                 <table>
                     <thead>
                         <tr>
                             <th>Provincia</th>
-                            <th>Cantidad de Registros</th>
-                            <th>Porcentaje</th>
+                            <th>Actualizaciones Hoy</th>
+                            <th>Porcentaje del Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -333,14 +401,15 @@ function generateReport(apiData, startDate, endDate) {
                 </table>
             </div>
 
+
             <div class="section">
-                <h2>🏢 Registros por Empresa Bandera</h2>
+                <h2>🏢 Nuevos Registros por Marca (Hoy)</h2>
                 <table>
                     <thead>
                         <tr>
-                            <th>Empresa Bandera</th>
-                            <th>Cantidad de Registros</th>
-                            <th>Porcentaje</th>
+                            <th>Marca (Empresa Bandera)</th>
+                            <th>Actualizaciones Hoy</th>
+                            <th>Porcentaje del Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -356,7 +425,7 @@ function generateReport(apiData, startDate, endDate) {
             </div>
 
             <div class="section">
-                <h2>📊 Estadísticas de Empresas Bandera</h2>
+                <h2>📊 Estadísticas de Red de Estaciones</h2>
                 <table>
                     <thead>
                         <tr>
@@ -367,19 +436,59 @@ function generateReport(apiData, startDate, endDate) {
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Total de Empresas</td>
-                            <td><strong>${analysis.flagCompanyStats.totalCompanies}</strong></td>
-                            <td>Empresas bandera registradas en el sistema</td>
+                            <td>Total de Estaciones Registradas</td>
+                            <td><strong>${analysis.gasStationStats.totalStations}</strong></td>
+                            <td>Estaciones de servicio únicas en todo el sistema</td>
                         </tr>
                         <tr>
-                            <td>Empresas con Precios</td>
-                            <td><strong>${analysis.flagCompanyStats.companiesWithPrices}</strong></td>
-                            <td>Empresas que publicaron precios hoy</td>
+                            <td>Estaciones Activas Hoy</td>
+                            <td><strong>${analysis.gasStationStats.activeStationsToday}</strong></td>
+                            <td>Estaciones que reportaron precios en el día</td>
                         </tr>
                         <tr>
-                            <td>Porcentaje de Cobertura</td>
-                            <td><strong class="percentage">${analysis.flagCompanyStats.percentage}%</strong></td>
-                            <td>Porcentaje de empresas que reportaron precios</td>
+                            <td>Estaciones con Precios Válidos</td>
+                            <td><strong>${analysis.gasStationStats.activeStationsWithPrices}</strong></td>
+                            <td>Estaciones con precios informados (> 0)</td>
+                        </tr>
+                        <tr>
+                            <td>Cobertura de Red</td>
+                            <td><strong class="percentage">${analysis.gasStationStats.percentageActive}%</strong></td>
+                            <td>Porcentaje de estaciones activas del total registrado</td>
+                        </tr>
+                        <tr>
+                            <td>Calidad de Información</td>
+                            <td><strong class="percentage">${analysis.gasStationStats.percentageWithPrices}%</strong></td>
+                            <td>Porcentaje de estaciones activas con precios válidos</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>🏷️ Estadísticas de Marcas</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Métrica</th>
+                            <th>Valor</th>
+                            <th>Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Marcas Activas Hoy</td>
+                            <td><strong>${analysis.flagCompanyStats.activeBrandsToday}</strong></td>
+                            <td>Marcas que reportaron precios en el día</td>
+                        </tr>
+                        <tr>
+                            <td>Marcas con Precios Válidos</td>
+                            <td><strong>${analysis.flagCompanyStats.activeBrandsWithPrices}</strong></td>
+                            <td>Marcas con precios informados (> 0)</td>
+                        </tr>
+                        <tr>
+                            <td>Calidad de Información por Marca</td>
+                            <td><strong class="percentage">${analysis.flagCompanyStats.percentageActive}%</strong></td>
+                            <td>Porcentaje de marcas activas con precios válidos</td>
                         </tr>
                     </tbody>
                 </table>
@@ -448,9 +557,14 @@ async function executeReportWorkflow(startDate, endDate) {
     const emailResult = await sendEmail(reportContent, startDate, endDate);
 
     console.log("Report workflow completed successfully");
+    
+    // Get today's data count for the result
+    const todayData = filterTodayData(apiData);
+    
     return {
       success: true,
       totalRecords: Array.isArray(filteredData) ? filteredData.length : 1,
+      todayRecords: todayData.length,
       emailSent: emailResult.success,
       messageId: emailResult.messageId,
     };
