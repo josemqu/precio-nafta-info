@@ -2,8 +2,8 @@ name: Daily API Report
 
 on:
   schedule:
-    # Ejecuta todos los días cada 2 minutos
-    - cron: '*/2 * * * *'
+    # Ejecuta cada 5 minutos para testing
+    - cron: '*/5 * * * *'
   
   # Permite ejecución manual desde GitHub
   workflow_dispatch:
