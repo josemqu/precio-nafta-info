@@ -1,0 +1,52 @@
+name: Daily API Report
+
+on:
+  schedule:
+    # Ejecuta todos los días a las 9:00 AM UTC (6:00 AM Argentina)
+    - cron: '0 9 * * *'
+  
+  # Permite ejecución manual desde GitHub
+  workflow_dispatch:
+    inputs:
+      startDate:
+        description: 'Fecha de inicio (YYYY-MM-DD)'
+        required: false
+        type: string
+      endDate:
+        description: 'Fecha de fin (YYYY-MM-DD)'
+        required: false
+        type: string
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Send API Report
+        run: |
+          # Construir URL con parámetros opcionales
+          URL="${{ secrets.APP_URL }}/trigger-report"
+          
+          if [ -n "${{ github.event.inputs.startDate }}" ] && [ -n "${{ github.event.inputs.endDate }}" ]; then
+            URL="${URL}?startDate=${{ github.event.inputs.startDate }}&endDate=${{ github.event.inputs.endDate }}"
+          fi
+          
+          echo "Triggering report at: $URL"
+          
+          # Hacer la petición GET al endpoint
+          response=$(curl -s -w "HTTPSTATUS:%{http_code}" -X GET "$URL")
+          
+          # Extraer código de estado
+          http_code=$(echo $response | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          body=$(echo $response | sed -e 's/HTTPSTATUS\:.*//g')
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          # Verificar si fue exitoso
+          if [ $http_code -eq 200 ]; then
+            echo "✅ Report sent successfully!"
+          else
+            echo "❌ Failed to send report"
+            exit 1
+          fi
