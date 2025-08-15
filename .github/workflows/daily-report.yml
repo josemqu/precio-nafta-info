@@ -2,8 +2,8 @@ name: Daily API Report
 
 on:
   schedule:
-    # Ejecuta todos los días a las 9:00 AM UTC (6:00 AM Argentina)
-    - cron: '0 9 * * *'
+    # Ejecuta todos los días cada 2 horas
+    - cron: '0 */2 * * *'
   
   # Permite ejecución manual desde GitHub
   workflow_dispatch:
