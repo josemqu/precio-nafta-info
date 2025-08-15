@@ -38,64 +38,380 @@ async function fetchApiData() {
 
 // Function to filter data by date
 function filterDataByDate(data, startDate, endDate) {
-  if (!Array.isArray(data)) {
-    console.warn("Data is not an array, returning as is");
-    return data;
+  if (!data || !data.result || !Array.isArray(data.result.records)) {
+    console.warn("Data structure not as expected, returning empty array");
+    return [];
   }
 
   const start = moment(startDate);
   const end = moment(endDate);
 
-  return data.filter((item) => {
-    // Adjust this field name based on your API response structure
-    const itemDate = moment(item.date || item.created_at || item.timestamp);
+  return data.result.records.filter((item) => {
+    // Argentina energy API uses 'fecha' field
+    const itemDate = moment(item.fecha || item.date || item.created_at || item.timestamp);
     return itemDate.isBetween(start, end, null, "[]");
   });
 }
 
-// Function to generate report
-function generateReport(filteredData, startDate, endDate) {
-  const reportDate = moment().format("YYYY-MM-DD HH:mm:ss");
-  const totalRecords = Array.isArray(filteredData) ? filteredData.length : 1;
-
-  let reportContent = `
-# Reporte de Datos API
-**Fecha del reporte:** ${reportDate}
-**Período:** ${startDate} - ${endDate}
-**Total de registros:** ${totalRecords}
-
-## Resumen de datos:
-`;
-
-  if (Array.isArray(filteredData)) {
-    filteredData.forEach((item, index) => {
-      reportContent += `
-### Registro ${index + 1}
-${JSON.stringify(item, null, 2)}
-`;
-    });
-  } else {
-    reportContent += `
-### Datos obtenidos:
-${JSON.stringify(filteredData, null, 2)}
-`;
+// Function to filter data for today only
+function filterTodayData(data) {
+  if (!data || !data.result || !Array.isArray(data.result.records)) {
+    console.warn("Data structure not as expected, returning empty array");
+    return [];
   }
 
-  return reportContent;
+  const today = moment().format('YYYY-MM-DD');
+  
+  return data.result.records.filter((item) => {
+    const itemDate = moment(item.fecha).format('YYYY-MM-DD');
+    return itemDate === today;
+  });
+}
+
+// Function to group data by field
+function groupDataBy(data, field) {
+  const grouped = {};
+  data.forEach(item => {
+    const key = item[field] || 'Sin especificar';
+    if (!grouped[key]) {
+      grouped[key] = [];
+    }
+    grouped[key].push(item);
+  });
+  return grouped;
+}
+
+// Function to analyze data and create statistics
+function analyzeData(todayData) {
+  const analysis = {
+    totalRecords: todayData.length,
+    byProduct: {},
+    byProvince: {},
+    byFlagCompany: {},
+    flagCompanyStats: {
+      totalCompanies: 0,
+      companiesWithPrices: 0,
+      percentage: 0
+    }
+  };
+
+  // Group by product
+  const productGroups = groupDataBy(todayData, 'producto');
+  analysis.byProduct = Object.keys(productGroups).map(product => ({
+    name: product,
+    count: productGroups[product].length,
+    records: productGroups[product]
+  }));
+
+  // Group by province
+  const provinceGroups = groupDataBy(todayData, 'provincia');
+  analysis.byProvince = Object.keys(provinceGroups).map(province => ({
+    name: province,
+    count: provinceGroups[province].length,
+    records: provinceGroups[province]
+  }));
+
+  // Group by flag company
+  const flagCompanyGroups = groupDataBy(todayData, 'empresabandera');
+  analysis.byFlagCompany = Object.keys(flagCompanyGroups).map(company => ({
+    name: company,
+    count: flagCompanyGroups[company].length,
+    records: flagCompanyGroups[company]
+  }));
+
+  // Calculate flag company statistics
+  const uniqueCompanies = new Set(todayData.map(item => item.empresabandera).filter(Boolean));
+  const companiesWithPrices = new Set(todayData.filter(item => item.precio).map(item => item.empresabandera));
+  
+  analysis.flagCompanyStats = {
+    totalCompanies: uniqueCompanies.size,
+    companiesWithPrices: companiesWithPrices.size,
+    percentage: uniqueCompanies.size > 0 ? ((companiesWithPrices.size / uniqueCompanies.size) * 100).toFixed(2) : 0
+  };
+
+  return analysis;
+}
+
+// Function to generate professional HTML report
+function generateReport(apiData, startDate, endDate) {
+  const reportDate = moment().format("DD/MM/YYYY HH:mm:ss");
+  const today = moment().format("DD/MM/YYYY");
+  
+  // Get today's data for analysis
+  const todayData = filterTodayData(apiData);
+  const analysis = analyzeData(todayData);
+
+  const htmlReport = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Precios de Combustibles - ${today}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .content {
+            padding: 30px;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .card h3 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+        .card .number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        .percentage {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+        .no-data {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Reporte de Precios de Combustibles</h1>
+            <p>Datos del día ${today} | Generado el ${reportDate}</p>
+        </div>
+        
+        <div class="content">
+            <div class="summary-cards">
+                <div class="card">
+                    <h3>Total de Registros</h3>
+                    <div class="number">${analysis.totalRecords}</div>
+                    <p>Registros del día de hoy</p>
+                </div>
+                <div class="card">
+                    <h3>Productos</h3>
+                    <div class="number">${analysis.byProduct.length}</div>
+                    <p>Tipos de combustible</p>
+                </div>
+                <div class="card">
+                    <h3>Provincias</h3>
+                    <div class="number">${analysis.byProvince.length}</div>
+                    <p>Con datos reportados</p>
+                </div>
+                <div class="card">
+                    <h3>Empresas Bandera</h3>
+                    <div class="number">${analysis.flagCompanyStats.totalCompanies}</div>
+                    <p>Empresas registradas</p>
+                </div>
+            </div>
+
+            ${analysis.totalRecords > 0 ? `
+            <div class="section">
+                <h2>📈 Registros por Producto</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cantidad de Registros</th>
+                            <th>Porcentaje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${analysis.byProduct.map(product => `
+                        <tr>
+                            <td>${product.name}</td>
+                            <td>${product.count}</td>
+                            <td class="percentage">${((product.count / analysis.totalRecords) * 100).toFixed(1)}%</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>🗺️ Registros por Provincia</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Provincia</th>
+                            <th>Cantidad de Registros</th>
+                            <th>Porcentaje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${analysis.byProvince.sort((a, b) => b.count - a.count).map(province => `
+                        <tr>
+                            <td>${province.name}</td>
+                            <td>${province.count}</td>
+                            <td class="percentage">${((province.count / analysis.totalRecords) * 100).toFixed(1)}%</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>🏢 Registros por Empresa Bandera</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Empresa Bandera</th>
+                            <th>Cantidad de Registros</th>
+                            <th>Porcentaje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${analysis.byFlagCompany.sort((a, b) => b.count - a.count).map(company => `
+                        <tr>
+                            <td>${company.name}</td>
+                            <td>${company.count}</td>
+                            <td class="percentage">${((company.count / analysis.totalRecords) * 100).toFixed(1)}%</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>📊 Estadísticas de Empresas Bandera</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Métrica</th>
+                            <th>Valor</th>
+                            <th>Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Total de Empresas</td>
+                            <td><strong>${analysis.flagCompanyStats.totalCompanies}</strong></td>
+                            <td>Empresas bandera registradas en el sistema</td>
+                        </tr>
+                        <tr>
+                            <td>Empresas con Precios</td>
+                            <td><strong>${analysis.flagCompanyStats.companiesWithPrices}</strong></td>
+                            <td>Empresas que publicaron precios hoy</td>
+                        </tr>
+                        <tr>
+                            <td>Porcentaje de Cobertura</td>
+                            <td><strong class="percentage">${analysis.flagCompanyStats.percentage}%</strong></td>
+                            <td>Porcentaje de empresas que reportaron precios</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            ` : `
+            <div class="no-data">
+                <h3>No hay datos disponibles para el día de hoy</h3>
+                <p>No se encontraron registros nuevos para la fecha ${today}</p>
+            </div>
+            `}
+        </div>
+        
+        <div class="footer">
+            <p>Reporte generado automáticamente desde la API de datos.energia.gob.ar</p>
+            <p>Sistema de Monitoreo de Precios de Combustibles - Argentina</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+  return htmlReport;
 }
 
 // Function to send email
 async function sendEmail(reportContent, startDate, endDate) {
+  const today = moment().format("DD/MM/YYYY");
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_RECIPIENTS,
-    subject: `Reporte API - ${startDate} a ${endDate}`,
-    text: reportContent,
+    subject: `📊 Reporte Precios Combustibles - ${today}`,
+    text: `Reporte de precios de combustibles del ${today}. Ver archivo adjunto HTML para el reporte completo.`,
     html: reportContent
-      .replace(/\n/g, "<br>")
-      .replace(/###/g, "<h3>")
-      .replace(/##/g, "<h2>")
-      .replace(/#/g, "<h1>"),
   };
 
   try {
@@ -125,7 +441,7 @@ async function executeReportWorkflow(startDate, endDate) {
 
     // Step 3: Generate report
     console.log("Generating report...");
-    const reportContent = generateReport(filteredData, startDate, endDate);
+    const reportContent = generateReport(apiData, startDate, endDate);
 
     // Step 4: Send email
     console.log("Sending email...");
