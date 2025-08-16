@@ -48,7 +48,9 @@ function filterDataByDate(data, startDate, endDate) {
 
   return data.result.records.filter((item) => {
     // Argentina energy API uses 'fecha_vigencia' field
-    const itemDate = moment(item.fecha_vigencia);
+    // fecha_vigencia is in Argentina local time (UTC-3)
+    // Convert to UTC by subtracting 3 hours to properly compare with UTC dates
+    const itemDate = moment(item.fecha_vigencia).subtract(3, 'hours');
     return itemDate.isBetween(start, end, null, "[]");
   });
 }
@@ -60,11 +62,13 @@ function filterTodayData(data) {
     return [];
   }
 
-  const today = moment().format("YYYY-MM-DD");
+  // Get today's date in Argentina timezone (UTC-3)
+  const todayArgentina = moment().utcOffset(-3).format("YYYY-MM-DD");
 
   return data.result.records.filter((item) => {
+    // fecha_vigencia is in Argentina local time, so we compare directly
     const itemDate = moment(item.fecha_vigencia).format("YYYY-MM-DD");
-    return itemDate === today;
+    return itemDate === todayArgentina;
   });
 }
 
