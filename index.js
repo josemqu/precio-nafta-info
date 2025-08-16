@@ -93,6 +93,7 @@ function analyzeData(todayData, allData) {
     byProvince: {},
     byGasStation: {},
     byFlagCompany: {},
+    byLocality: {},
     gasStationStats: {
       totalStations: 0,
       activeStationsToday: 0,
@@ -111,21 +112,35 @@ function analyzeData(todayData, allData) {
   // Group by product
   const productGroups = groupDataBy(todayData, "producto");
   analysis.byProduct = Object.keys(productGroups)
-    .map((product) => ({
-      name: product,
-      count: productGroups[product].length,
-      records: productGroups[product],
-    }))
+    .map((product) => {
+      const records = productGroups[product];
+      // Count unique stations that updated this specific product
+      const uniqueStationsForProduct = new Set(
+        records.map(item => item.idempresa).filter(Boolean)
+      ).size;
+      
+      return {
+        name: product,
+        count: records.length,
+        activeStations: uniqueStationsForProduct,
+        records: records,
+      };
+    })
     .sort((a, b) => b.count - a.count);
 
   // Group by province
   const provinceGroups = groupDataBy(todayData, "provincia");
   analysis.byProvince = Object.keys(provinceGroups)
-    .map((province) => ({
-      name: province,
-      count: provinceGroups[province].length,
-      records: provinceGroups[province],
-    }))
+    .map((province) => {
+      const records = provinceGroups[province];
+      const activeStations = new Set(records.map(item => item.idempresa).filter(Boolean)).size;
+      return {
+        name: province,
+        count: records.length,
+        activeStations: activeStations,
+        records: records,
+      };
+    })
     .sort((a, b) => b.count - a.count);
 
   // Group by gas station (empresa)
@@ -141,12 +156,33 @@ function analyzeData(todayData, allData) {
   // Group by flag company (marca)
   const flagCompanyGroups = groupDataBy(todayData, "empresabandera");
   analysis.byFlagCompany = Object.keys(flagCompanyGroups)
-    .map((company) => ({
-      name: company,
-      count: flagCompanyGroups[company].length,
-      records: flagCompanyGroups[company],
-    }))
+    .map((company) => {
+      const records = flagCompanyGroups[company];
+      const activeStations = new Set(records.map(item => item.idempresa).filter(Boolean)).size;
+      return {
+        name: company,
+        count: records.length,
+        activeStations: activeStations,
+        records: records,
+      };
+    })
     .sort((a, b) => b.count - a.count);
+
+  // Group by locality (localidad)
+  const localityGroups = groupDataBy(todayData, "localidad");
+  analysis.byLocality = Object.keys(localityGroups)
+    .map((locality) => {
+      const records = localityGroups[locality];
+      const activeStations = new Set(records.map(item => item.idempresa).filter(Boolean)).size;
+      return {
+        name: locality,
+        count: records.length,
+        activeStations: activeStations,
+        records: records,
+      };
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10); // Top 10 only
 
   // Calculate gas station statistics (Empresa = Estación de Servicio)
   const totalUniqueStations = new Set(
@@ -416,7 +452,8 @@ function generateReport(apiData, startDate, endDate) {
                     <thead>
                         <tr>
                             <th>Producto</th>
-                            <th>Actualizaciones Hoy</th>
+                            <th>Precios Nuevos</th>
+                            <th>Estaciones Activas</th>
                             <th>Porcentaje del Total</th>
                         </tr>
                     </thead>
@@ -427,6 +464,7 @@ function generateReport(apiData, startDate, endDate) {
                         <tr>
                             <td>${product.name}</td>
                             <td>${product.count}</td>
+                            <td>${product.activeStations}</td>
                             <td class="percentage">${(
                               (product.count / analysis.totalRecords) *
                               100
@@ -445,7 +483,8 @@ function generateReport(apiData, startDate, endDate) {
                     <thead>
                         <tr>
                             <th>Provincia</th>
-                            <th>Actualizaciones Hoy</th>
+                            <th>Precios Nuevos</th>
+                            <th>Estaciones Activas</th>
                             <th>Porcentaje del Total</th>
                         </tr>
                     </thead>
@@ -457,6 +496,7 @@ function generateReport(apiData, startDate, endDate) {
                         <tr>
                             <td>${province.name}</td>
                             <td>${province.count}</td>
+                            <td>${province.activeStations}</td>
                             <td class="percentage">${(
                               (province.count / analysis.totalRecords) *
                               100
@@ -476,7 +516,8 @@ function generateReport(apiData, startDate, endDate) {
                     <thead>
                         <tr>
                             <th>Marca (Empresa Bandera)</th>
-                            <th>Actualizaciones Hoy</th>
+                            <th>Precios Nuevos</th>
+                            <th>Estaciones Activas</th>
                             <th>Porcentaje del Total</th>
                         </tr>
                     </thead>
@@ -488,10 +529,37 @@ function generateReport(apiData, startDate, endDate) {
                         <tr>
                             <td>${company.name}</td>
                             <td>${company.count}</td>
+                            <td>${company.activeStations}</td>
                             <td class="percentage">${(
                               (company.count / analysis.totalRecords) *
                               100
                             ).toFixed(1)}%</td>
+                        </tr>
+                        `
+                          )
+                          .join("")}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>🏘️ Top 10 Localidades con Más Actualizaciones</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Localidad</th>
+                            <th>Precios Nuevos</th>
+                            <th>Estaciones Activas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${analysis.byLocality
+                          .map(
+                            (locality) => `
+                        <tr>
+                            <td>${locality.name}</td>
+                            <td>${locality.count}</td>
+                            <td>${locality.activeStations}</td>
                         </tr>
                         `
                           )
