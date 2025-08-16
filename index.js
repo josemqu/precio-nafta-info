@@ -116,9 +116,9 @@ function analyzeData(todayData, allData) {
       const records = productGroups[product];
       // Count unique stations that updated this specific product
       const uniqueStationsForProduct = new Set(
-        records.map(item => item.idempresa).filter(Boolean)
+        records.map((item) => item.idempresa).filter(Boolean)
       ).size;
-      
+
       return {
         name: product,
         count: records.length,
@@ -133,7 +133,9 @@ function analyzeData(todayData, allData) {
   analysis.byProvince = Object.keys(provinceGroups)
     .map((province) => {
       const records = provinceGroups[province];
-      const activeStations = new Set(records.map(item => item.idempresa).filter(Boolean)).size;
+      const activeStations = new Set(
+        records.map((item) => item.idempresa).filter(Boolean)
+      ).size;
       return {
         name: province,
         count: records.length,
@@ -158,7 +160,9 @@ function analyzeData(todayData, allData) {
   analysis.byFlagCompany = Object.keys(flagCompanyGroups)
     .map((company) => {
       const records = flagCompanyGroups[company];
-      const activeStations = new Set(records.map(item => item.idempresa).filter(Boolean)).size;
+      const activeStations = new Set(
+        records.map((item) => item.idempresa).filter(Boolean)
+      ).size;
       return {
         name: company,
         count: records.length,
@@ -173,7 +177,9 @@ function analyzeData(todayData, allData) {
   analysis.byLocality = Object.keys(localityGroups)
     .map((locality) => {
       const records = localityGroups[locality];
-      const activeStations = new Set(records.map(item => item.idempresa).filter(Boolean)).size;
+      const activeStations = new Set(
+        records.map((item) => item.idempresa).filter(Boolean)
+      ).size;
       return {
         name: locality,
         count: records.length,
@@ -278,12 +284,12 @@ function generateReport(apiData, startDate, endDate) {
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
+            padding: 20px;
             text-align: center;
         }
         .header h1 {
             margin: 0;
-            font-size: 2.5em;
+            font-size: 2em;
             font-weight: 300;
         }
         .header p {
@@ -399,7 +405,7 @@ function generateReport(apiData, startDate, endDate) {
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Reporte de Precios de Combustibles</h1>
+            <h1>Reporte de Precios de Combustibles</h1>
             <p>Datos del día ${today} | Generado el ${reportDate}</p>
         </div>
         
