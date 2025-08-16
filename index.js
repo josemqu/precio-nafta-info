@@ -50,7 +50,7 @@ function filterDataByDate(data, startDate, endDate) {
     // Argentina energy API uses 'fecha_vigencia' field
     // fecha_vigencia is in Argentina local time (UTC-3)
     // Convert to UTC by subtracting 3 hours to properly compare with UTC dates
-    const itemDate = moment(item.fecha_vigencia).subtract(3, 'hours');
+    const itemDate = moment(item.fecha_vigencia).subtract(3, "hours");
     return itemDate.isBetween(start, end, null, "[]");
   });
 }
@@ -501,7 +501,7 @@ function generateReport(apiData, startDate, endDate) {
             </div>
 
             <div class="section">
-                <h2>📊 Estadísticas de Red de Estaciones</h2>
+                <h2>Estadísticas de Red de Estaciones</h2>
                 <table>
                     <thead>
                         <tr>
