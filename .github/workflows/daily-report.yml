@@ -25,16 +25,24 @@ jobs:
       - name: Send API Report
         run: |
           # Construir URL con parámetros opcionales
-          URL="${{ secrets.APP_URL }}/trigger-report"
+          set -euo pipefail
+          BASE_URL="${{ secrets.APP_URL }}"
+          # Normalizar para evitar doble '/'
+          BASE_URL="${BASE_URL%/}"
+          URL="${BASE_URL}/trigger-report"
           
-          if [ -n "${{ github.event.inputs.startDate }}" ] && [ -n "${{ github.event.inputs.endDate }}" ]; then
-            URL="${URL}?startDate=${{ github.event.inputs.startDate }}&endDate=${{ github.event.inputs.endDate }}"
-          fi
+          echo "Checking health at: ${BASE_URL}/health"
+          curl -sS -o /dev/null -w "Health HTTP Status: %{http_code}\n" "${BASE_URL}/health" || true
           
           echo "Triggering report at: $URL"
           
-          # Hacer la petición GET al endpoint
-          response=$(curl -s -w "HTTPSTATUS:%{http_code}" -X GET "$URL")
+          # Enviar POST (el endpoint acepta POST con JSON body)
+          if [ -n "${{ github.event.inputs.startDate }}" ] && [ -n "${{ github.event.inputs.endDate }}" ]; then
+            payload=$(jq -n --arg s "${{ github.event.inputs.startDate }}" --arg e "${{ github.event.inputs.endDate }}" '{startDate:$s, endDate:$e}')
+            response=$(curl -sS -L -H "Content-Type: application/json" -X POST -d "$payload" -w "HTTPSTATUS:%{http_code}" "$URL")
+          else
+            response=$(curl -sS -L -H "Content-Type: application/json" -X POST -w "HTTPSTATUS:%{http_code}" "$URL")
+          fi
           
           # Extraer código de estado
           http_code=$(echo $response | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
