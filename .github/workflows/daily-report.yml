@@ -27,8 +27,19 @@ jobs:
           # Construir URL con parámetros opcionales
           URL="${{ secrets.APP_URL }}/trigger-report"
           
-          if [ -n "${{ github.event.inputs.startDate }}" ] && [ -n "${{ github.event.inputs.endDate }}" ]; then
-            URL="${URL}?startDate=${{ github.event.inputs.startDate }}&endDate=${{ github.event.inputs.endDate }}"
+          # Si se proporcionan inputs manuales, usarlos (start y/o end). Si no, por defecto: desde siempre hasta hoy
+          if [ -n "${{ github.event.inputs.startDate }}" ] || [ -n "${{ github.event.inputs.endDate }}" ]; then
+            SEP="?"
+            if [ -n "${{ github.event.inputs.startDate }}" ]; then
+              URL="${URL}${SEP}startDate=${{ github.event.inputs.startDate }}"
+              SEP="&"
+            fi
+            if [ -n "${{ github.event.inputs.endDate }}" ]; then
+              URL="${URL}${SEP}endDate=${{ github.event.inputs.endDate }}"
+            fi
+          else
+            # "Para siempre": fijar una fecha de inicio muy temprana y dejar endDate vacío (el servidor usa hoy por defecto)
+            URL="${URL}?startDate=2000-01-01"
           fi
           
           echo "Triggering report at: $URL"
