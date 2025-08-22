@@ -314,6 +314,8 @@ function generateReport(apiData, startDate, endDate) {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            /* Ensure minimum separation between cards even if grid gap is not supported (email clients) */
+            margin-bottom: 10px;
         }
         .card-content {
             flex: 1;
@@ -411,15 +413,15 @@ function generateReport(apiData, startDate, endDate) {
         </div>
         
         <div class="content">
-            <div class="summary-cards">
-                <div class="card">
+            <div class="summary-cards" style="display:block;">
+                <div class="card" style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;margin:12px 0;">
                     <div class="card-content">
                         <h3>Registros Nuevos Hoy</h3>
                         <p>Actualizaciones de precios del día</p>
                     </div>
                     <div class="number">${analysis.totalRecords}</div>
                 </div>
-                <div class="card">
+                <div class="card" style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;margin:12px 0;">
                     <div class="card-content">
                         <h3>Estaciones Activas</h3>
                         <p>de ${
@@ -430,7 +432,7 @@ function generateReport(apiData, startDate, endDate) {
                       analysis.gasStationStats.activeStationsToday
                     }</div>
                 </div>
-                <div class="card">
+                <div class="card" style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;margin:12px 0;">
                     <div class="card-content">
                         <h3>Marcas Activas</h3>
                         <p>Marcas que reportaron hoy</p>
@@ -439,7 +441,7 @@ function generateReport(apiData, startDate, endDate) {
                       analysis.flagCompanyStats.activeBrandsToday
                     }</div>
                 </div>
-                <div class="card">
+                <div class="card" style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;margin:12px 0;">
                     <div class="card-content">
                         <h3>Cobertura de Red</h3>
                         <p>Estaciones activas del total</p>
