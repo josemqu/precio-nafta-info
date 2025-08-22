@@ -414,42 +414,67 @@ function generateReport(apiData, startDate, endDate) {
         
         <div class="content">
             <div class="summary-cards" style="display:block;">
-                <div class="card" style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;margin:12px 0;">
-                    <div class="card-content">
-                        <h3>Registros Nuevos Hoy</h3>
-                        <p>Actualizaciones de precios del día</p>
-                    </div>
-                    <div class="number">${analysis.totalRecords}</div>
-                </div>
-                <div class="card" style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;margin:12px 0;">
-                    <div class="card-content">
-                        <h3>Estaciones Activas</h3>
-                        <p>de ${
-                          analysis.gasStationStats.totalStations
-                        } estaciones totales</p>
-                    </div>
-                    <div class="number">${
-                      analysis.gasStationStats.activeStationsToday
-                    }</div>
-                </div>
-                <div class="card" style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;margin:12px 0;">
-                    <div class="card-content">
-                        <h3>Marcas Activas</h3>
-                        <p>Marcas que reportaron hoy</p>
-                    </div>
-                    <div class="number">${
-                      analysis.flagCompanyStats.activeBrandsToday
-                    }</div>
-                </div>
-                <div class="card" style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;margin:12px 0;">
-                    <div class="card-content">
-                        <h3>Cobertura de Red</h3>
-                        <p>Estaciones activas del total</p>
-                    </div>
-                    <div class="number">${
-                      analysis.gasStationStats.percentageActive
-                    }%</div>
-                </div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                  <tr>
+                    <td style="padding:0;">
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;">
+                              <div style="flex:1;">
+                                <h3 style="margin:0 0 5px 0;color:#667eea;font-size:16px;font-weight:600;">Registros Nuevos Hoy</h3>
+                                <p style="margin:0;font-size:14px;color:#666;line-height:1.3;">Actualizaciones de precios del día</p>
+                              </div>
+                              <div style="font-size:24px;font-weight:bold;color:#333;margin-left:15px;min-width:60px;text-align:right;">${analysis.totalRecords}</div>
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td height="12" style="height:12px;line-height:12px;font-size:0;background:#ffffff;">&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;">
+                              <div style="flex:1;">
+                                <h3 style="margin:0 0 5px 0;color:#667eea;font-size:16px;font-weight:600;">Estaciones Activas</h3>
+                                <p style="margin:0;font-size:14px;color:#666;line-height:1.3;">de ${analysis.gasStationStats.totalStations} estaciones totales</p>
+                              </div>
+                              <div style="font-size:24px;font-weight:bold;color:#333;margin-left:15px;min-width:60px;text-align:right;">${analysis.gasStationStats.activeStationsToday}</div>
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td height="12" style="height:12px;line-height:12px;font-size:0;background:#ffffff;">&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;">
+                              <div style="flex:1;">
+                                <h3 style="margin:0 0 5px 0;color:#667eea;font-size:16px;font-weight:600;">Marcas Activas</h3>
+                                <p style="margin:0;font-size:14px;color:#666;line-height:1.3;">Marcas que reportaron hoy</p>
+                              </div>
+                              <div style="font-size:24px;font-weight:bold;color:#333;margin-left:15px;min-width:60px;text-align:right;">${analysis.flagCompanyStats.activeBrandsToday}</div>
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td height="12" style="height:12px;line-height:12px;font-size:0;background:#ffffff;">&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td style="background:#f8f9fa;border-left:4px solid #667eea;padding:15px;border-radius:8px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;">
+                              <div style="flex:1;">
+                                <h3 style="margin:0 0 5px 0;color:#667eea;font-size:16px;font-weight:600;">Cobertura de Red</h3>
+                                <p style="margin:0;font-size:14px;color:#666;line-height:1.3;">Estaciones activas del total</p>
+                              </div>
+                              <div style="font-size:24px;font-weight:bold;color:#333;margin-left:15px;min-width:60px;text-align:right;">${analysis.gasStationStats.percentageActive}%</div>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
             </div>
 
             ${
