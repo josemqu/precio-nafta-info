@@ -317,6 +317,7 @@ function generateReport(apiData, startDate, endDate) {
         }
         .card-content {
             flex: 1;
+            margin-bottom: 10px;
         }
         .card h3 {
             margin: 0 0 5px 0;
