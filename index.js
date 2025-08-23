@@ -303,7 +303,7 @@ function generateReport(apiData, startDate, endDate) {
         .summary-cards {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            gap: 10px;
             margin-bottom: 40px;
         }
         .card {
