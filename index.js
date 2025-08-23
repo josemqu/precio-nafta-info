@@ -412,7 +412,7 @@ function generateReport(apiData, startDate, endDate) {
         </div>
         
         <div class="content">
-            <div class="summary-cards">
+            <div class="summary-cards" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
                 <div class="card">
                     <div class="card-content">
                         <h3>Registros Nuevos Hoy</h3>
