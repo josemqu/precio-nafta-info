@@ -310,6 +310,7 @@ function generateReport(apiData, startDate, endDate) {
             background: #f8f9fa;
             border-left: 4px solid #667eea;
             padding: 15px;
+            margin-bottom: 10px;
             border-radius: 8px;
             display: flex;
             align-items: center;
