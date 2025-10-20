@@ -23,15 +23,21 @@ git push origin main
 En el dashboard de Railway, ve a la pestaña **"Variables"** y añade:
 
 ```
+NODE_ENV=production
 PORT=3000
 API_ENDPOINT=https://datos.energia.gob.ar/api/3/action/datastore_search?resource_id=e37c1059-e8e4-4641-81e5-e098e80781fb&limit=100000
-EMAIL_SERVICE=gmail
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
 EMAIL_USER=tu_email@gmail.com
 EMAIL_PASSWORD=tu_app_password_aqui
 EMAIL_RECIPIENTS=destinatario1@example.com,destinatario2@example.com
 ```
 
-**Nota sobre PORT:** Railway asigna automáticamente el puerto, pero es bueno tenerlo definido para local.
+**⚠️ IMPORTANTE sobre Email:**
+- **Usa puerto 465** (no 587) - Railway bloquea el puerto 587
+- **EMAIL_PASSWORD** debe ser una contraseña de aplicación de Gmail (16 caracteres)
+- Genera una en: https://myaccount.google.com/apppasswords
+- Si el email falla con timeout, consulta: [RAILWAY_EMAIL_FIX.md](RAILWAY_EMAIL_FIX.md)
 
 ### 4. Desplegar
 

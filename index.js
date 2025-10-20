@@ -13,30 +13,35 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // Email transporter configuration
+// Railway y otros proveedores cloud a menudo bloquean puerto 587 (SMTP)
+// Usamos puerto 465 (SSL) que es más confiable en producción
+const isProduction = process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT;
+
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || "gmail",
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: process.env.SMTP_PORT || (isProduction ? 465 : 587), // Puerto 465 en producción
+  secure: isProduction ? true : false, // true para puerto 465 (SSL), false para 587 (TLS)
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
   // Configuración adicional para evitar timeouts
   pool: true, // Usar pool de conexiones
-  maxConnections: 5,
+  maxConnections: 3,
   maxMessages: 10,
   rateDelta: 1000,
   rateLimit: 5,
-  // Timeouts aumentados
-  connectionTimeout: 60000, // 60 segundos
-  greetingTimeout: 30000, // 30 segundos
-  socketTimeout: 60000, // 60 segundos
-  // Logging para debug
-  logger: false,
-  debug: false,
+  // Timeouts aumentados para producción
+  connectionTimeout: 90000, // 90 segundos
+  greetingTimeout: 45000, // 45 segundos
+  socketTimeout: 90000, // 90 segundos
+  // Logging para debug (activar en caso de problemas)
+  logger: process.env.EMAIL_DEBUG === "true",
+  debug: process.env.EMAIL_DEBUG === "true",
   // Opciones de seguridad
-  secure: false, // true para puerto 465, false para otros puertos
-  requireTLS: true,
   tls: {
     rejectUnauthorized: false,
+    minVersion: "TLSv1.2",
   },
 });
 

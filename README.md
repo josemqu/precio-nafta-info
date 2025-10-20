@@ -105,6 +105,8 @@ git push origin main
 
 3. **Configura las variables de entorno en Railway:**
    - Ve a Variables y añade las de `.env.railway.example`
+   - **⚠️ IMPORTANTE:** Usa `SMTP_PORT=465` (Railway bloquea puerto 587)
+   - Usa contraseña de aplicación de Gmail (16 caracteres)
    - Railway generará automáticamente tu URL
 
 4. **Verifica el despliegue:**
