@@ -19,7 +19,39 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
+  // Configuración adicional para evitar timeouts
+  pool: true, // Usar pool de conexiones
+  maxConnections: 5,
+  maxMessages: 10,
+  rateDelta: 1000,
+  rateLimit: 5,
+  // Timeouts aumentados
+  connectionTimeout: 60000, // 60 segundos
+  greetingTimeout: 30000, // 30 segundos
+  socketTimeout: 60000, // 60 segundos
+  // Logging para debug
+  logger: false,
+  debug: false,
+  // Opciones de seguridad
+  secure: false, // true para puerto 465, false para otros puertos
+  requireTLS: true,
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
+
+// Verify transporter configuration
+async function verifyEmailConnection() {
+  try {
+    await transporter.verify();
+    console.log("✅ Email transporter is ready");
+    return true;
+  } catch (error) {
+    console.error("❌ Email transporter verification failed:", error.message);
+    console.error("Check your EMAIL_USER and EMAIL_PASSWORD in .env.local");
+    return false;
+  }
+}
 
 // Function to fetch data from API
 async function fetchApiData() {
@@ -663,8 +695,8 @@ function generateReport(apiData) {
   return htmlReport;
 }
 
-// Function to send email
-async function sendEmail(reportContent) {
+// Function to send email with retry logic
+async function sendEmail(reportContent, retries = 3) {
   const today = moment().format("DD/MM/YYYY");
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -674,13 +706,32 @@ async function sendEmail(reportContent) {
     html: reportContent,
   };
 
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully:", info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error("Error sending email:", error.message);
-    throw new Error(`Failed to send email: ${error.message}`);
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt}/${retries} to send email...`);
+      const info = await transporter.sendMail(mailOptions);
+      console.log("✅ Email sent successfully:", info.messageId);
+      console.log("   Response:", info.response);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error(`❌ Attempt ${attempt} failed:`, error.message);
+      
+      if (error.code) {
+        console.error("   Error code:", error.code);
+      }
+      if (error.command) {
+        console.error("   Failed command:", error.command);
+      }
+      
+      if (attempt < retries) {
+        const waitTime = attempt * 2000; // Espera incremental: 2s, 4s, 6s
+        console.log(`   Waiting ${waitTime / 1000}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        console.error("   All retry attempts exhausted");
+        throw new Error(`Failed to send email after ${retries} attempts: ${error.message}`);
+      }
+    }
   }
 }
 
@@ -767,12 +818,14 @@ app.get("/trigger-report", async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(
     `Trigger report: POST/GET http://localhost:${PORT}/trigger-report`
   );
+  console.log("\nVerifying email configuration...");
+  await verifyEmailConnection();
 });
 
 export default app;
