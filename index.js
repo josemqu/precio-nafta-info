@@ -65,15 +65,28 @@ console.log(
 
 const transporter = nodemailer.createTransport(emailConfig);
 
-// Verify transporter configuration
+// Verify transporter configuration with timeout
 async function verifyEmailConnection() {
   try {
-    await transporter.verify();
+    console.log("Attempting to verify email connection...");
+    
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Verification timeout after 30s')), 30000)
+    );
+    
+    // Race between verify and timeout
+    await Promise.race([
+      transporter.verify(),
+      timeoutPromise
+    ]);
+    
     console.log("✅ Email transporter is ready");
     return true;
   } catch (error) {
     console.error("❌ Email transporter verification failed:", error.message);
-    console.error("Check your EMAIL_USER and EMAIL_PASSWORD in .env.local");
+    console.error("This might be due to firewall/network restrictions in Railway");
+    console.error("The email will still attempt to send when triggered");
     return false;
   }
 }
@@ -845,14 +858,17 @@ app.get("/trigger-report", async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(
     `Trigger report: POST/GET http://localhost:${PORT}/trigger-report`
   );
   console.log("\nVerifying email configuration...");
-  await verifyEmailConnection();
+  // Don't await - verify in background to not block server startup
+  verifyEmailConnection().catch(err => {
+    console.error("Email verification error:", err.message);
+  });
 });
 
 export default app;
