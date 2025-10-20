@@ -17,9 +17,9 @@ app.use(express.json());
 // Usamos puerto 465 (SSL) que es más confiable en producción
 const isProduction = process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT;
 
-const transporter = nodemailer.createTransport({
+const emailConfig = {
   host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: process.env.SMTP_PORT || (isProduction ? 465 : 587), // Puerto 465 en producción
+  port: parseInt(process.env.SMTP_PORT || (isProduction ? 465 : 587)),
   secure: isProduction ? true : false, // true para puerto 465 (SSL), false para 587 (TLS)
   auth: {
     user: process.env.EMAIL_USER,
@@ -43,7 +43,18 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false,
     minVersion: "TLSv1.2",
   },
-});
+};
+
+// Log de configuración para debug
+console.log("\n📧 Email Configuration:");
+console.log("  Environment:", isProduction ? "production" : "development");
+console.log("  Host:", emailConfig.host);
+console.log("  Port:", emailConfig.port);
+console.log("  Secure (SSL):", emailConfig.secure);
+console.log("  User:", emailConfig.auth.user ? emailConfig.auth.user : "❌ NOT SET");
+console.log("  Password:", emailConfig.auth.pass ? "✓ Set (" + emailConfig.auth.pass.length + " chars)" : "❌ NOT SET");
+
+const transporter = nodemailer.createTransport(emailConfig);
 
 // Verify transporter configuration
 async function verifyEmailConnection() {
