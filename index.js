@@ -4,7 +4,7 @@ import nodemailer from "nodemailer";
 import moment from "moment";
 import dotenv from "dotenv";
 
-dotenv.config({ path: ".env.local" });
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,7 +15,8 @@ app.use(express.json());
 // Email transporter configuration
 // Railway y otros proveedores cloud a menudo bloquean puerto 587 (SMTP)
 // Usamos puerto 465 (SSL) que es más confiable en producción
-const isProduction = process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT;
+const isProduction =
+  process.env.NODE_ENV === "production" || process.env.RAILWAY_ENVIRONMENT;
 
 const emailConfig = {
   host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -51,8 +52,16 @@ console.log("  Environment:", isProduction ? "production" : "development");
 console.log("  Host:", emailConfig.host);
 console.log("  Port:", emailConfig.port);
 console.log("  Secure (SSL):", emailConfig.secure);
-console.log("  User:", emailConfig.auth.user ? emailConfig.auth.user : "❌ NOT SET");
-console.log("  Password:", emailConfig.auth.pass ? "✓ Set (" + emailConfig.auth.pass.length + " chars)" : "❌ NOT SET");
+console.log(
+  "  User:",
+  emailConfig.auth.user ? emailConfig.auth.user : "❌ NOT SET"
+);
+console.log(
+  "  Password:",
+  emailConfig.auth.pass
+    ? "✓ Set (" + emailConfig.auth.pass.length + " chars)"
+    : "❌ NOT SET"
+);
 
 const transporter = nodemailer.createTransport(emailConfig);
 
@@ -731,21 +740,23 @@ async function sendEmail(reportContent, retries = 3) {
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error(`❌ Attempt ${attempt} failed:`, error.message);
-      
+
       if (error.code) {
         console.error("   Error code:", error.code);
       }
       if (error.command) {
         console.error("   Failed command:", error.command);
       }
-      
+
       if (attempt < retries) {
         const waitTime = attempt * 2000; // Espera incremental: 2s, 4s, 6s
         console.log(`   Waiting ${waitTime / 1000}s before retry...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
       } else {
         console.error("   All retry attempts exhausted");
-        throw new Error(`Failed to send email after ${retries} attempts: ${error.message}`);
+        throw new Error(
+          `Failed to send email after ${retries} attempts: ${error.message}`
+        );
       }
     }
   }
