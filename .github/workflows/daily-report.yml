@@ -3,7 +3,7 @@ name: Daily API Report
 on:
   schedule:
     # Ejecuta cada 3 horas 
-    - cron: '0 22 * * *'
+    # - cron: '0 22 * * *'
   
   # Permite ejecución manual desde GitHub
   workflow_dispatch:
