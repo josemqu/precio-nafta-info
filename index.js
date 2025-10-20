@@ -36,25 +36,6 @@ async function fetchApiData() {
   }
 }
 
-// Function to filter data by date
-function filterDataByDate(data, startDate, endDate) {
-  if (!data || !data.result || !Array.isArray(data.result.records)) {
-    console.warn("Data structure not as expected, returning empty array");
-    return [];
-  }
-
-  const start = moment(startDate);
-  const end = moment(endDate);
-
-  return data.result.records.filter((item) => {
-    // Argentina energy API uses 'fecha_vigencia' field
-    // fecha_vigencia is in Argentina local time (UTC-3)
-    // Convert to UTC by subtracting 3 hours to properly compare with UTC dates
-    const itemDate = moment(item.fecha_vigencia).subtract(3, "hours");
-    return itemDate.isBetween(start, end, null, "[]");
-  });
-}
-
 // Function to filter data for today only
 function filterTodayData(data) {
   if (!data || !data.result || !Array.isArray(data.result.records)) {
@@ -249,7 +230,7 @@ function analyzeData(todayData, allData) {
 }
 
 // Function to generate professional HTML report
-function generateReport(apiData, startDate, endDate) {
+function generateReport(apiData) {
   const reportDate = moment().format("DD/MM/YYYY HH:mm:ss");
   const today = moment().format("DD/MM/YYYY");
 
@@ -683,7 +664,7 @@ function generateReport(apiData, startDate, endDate) {
 }
 
 // Function to send email
-async function sendEmail(reportContent, startDate, endDate) {
+async function sendEmail(reportContent) {
   const today = moment().format("DD/MM/YYYY");
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -704,36 +685,30 @@ async function sendEmail(reportContent, startDate, endDate) {
 }
 
 // Main workflow function
-async function executeReportWorkflow(startDate, endDate) {
+async function executeReportWorkflow() {
   try {
-    console.log(
-      `Starting report workflow for period: ${startDate} - ${endDate}`
-    );
+    console.log("Starting report workflow...");
 
     // Step 1: Fetch data from API
     console.log("Fetching data from API...");
     const apiData = await fetchApiData();
 
-    // Step 2: Filter data by date
-    console.log("Filtering data by date...");
-    const filteredData = filterDataByDate(apiData, startDate, endDate);
+    // Step 2: Get today's data
+    console.log("Filtering today's data...");
+    const todayData = filterTodayData(apiData);
 
     // Step 3: Generate report
     console.log("Generating report...");
-    const reportContent = generateReport(apiData, startDate, endDate);
+    const reportContent = generateReport(apiData);
 
     // Step 4: Send email
     console.log("Sending email...");
-    const emailResult = await sendEmail(reportContent, startDate, endDate);
+    const emailResult = await sendEmail(reportContent);
 
     console.log("Report workflow completed successfully");
 
-    // Get today's data count for the result
-    const todayData = filterTodayData(apiData);
-
     return {
       success: true,
-      totalRecords: Array.isArray(filteredData) ? filteredData.length : 1,
       todayRecords: todayData.length,
       emailSent: emailResult.success,
       messageId: emailResult.messageId,
@@ -758,31 +733,10 @@ app.get("/health", (req, res) => {
 // Trigger report workflow endpoint
 app.post("/trigger-report", async (req, res) => {
   try {
-    const { startDate, endDate } = req.body;
-
-    // Default to last 7 days if no dates provided
-    const start =
-      startDate || moment().subtract(7, "days").format("YYYY-MM-DD");
-    const end = endDate || moment().format("YYYY-MM-DD");
-
-    // Validate dates
-    if (!moment(start).isValid() || !moment(end).isValid()) {
-      return res.status(400).json({
-        error: "Invalid date format. Use YYYY-MM-DD format.",
-      });
-    }
-
-    if (moment(start).isAfter(moment(end))) {
-      return res.status(400).json({
-        error: "Start date cannot be after end date.",
-      });
-    }
-
-    const result = await executeReportWorkflow(start, end);
+    const result = await executeReportWorkflow();
 
     res.json({
       message: "Report workflow executed successfully",
-      period: { startDate: start, endDate: end },
       result,
     });
   } catch (error) {
@@ -797,18 +751,10 @@ app.post("/trigger-report", async (req, res) => {
 // GET endpoint for manual trigger (useful for GitHub Actions)
 app.get("/trigger-report", async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-
-    // Default to last 7 days if no dates provided
-    const start =
-      startDate || moment().subtract(7, "days").format("YYYY-MM-DD");
-    const end = endDate || moment().format("YYYY-MM-DD");
-
-    const result = await executeReportWorkflow(start, end);
+    const result = await executeReportWorkflow();
 
     res.json({
       message: "Report workflow executed successfully",
-      period: { startDate: start, endDate: end },
       result,
     });
   } catch (error) {

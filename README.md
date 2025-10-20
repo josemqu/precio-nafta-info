@@ -1,11 +1,11 @@
 # API Report Mailer
 
-Una aplicación Node.js que obtiene datos de una API, los filtra por fecha, genera un reporte y lo envía por email. Incluye un endpoint para disparar el workflow manualmente o desde GitHub Actions.
+Una aplicación Node.js que obtiene datos de una API, genera un reporte con los datos del día actual y lo envía por email. Incluye un endpoint para disparar el workflow manualmente o desde GitHub Actions.
 
 ## Características
 
 - 🔄 Obtiene datos de cualquier API REST
-- 📅 Filtra datos por rango de fechas
+- 📅 Filtra datos del día actual (zona horaria Argentina)
 - 📊 Genera reportes automáticos
 - 📧 Envía reportes por email
 - 🚀 Endpoint para GitHub Actions
@@ -63,19 +63,14 @@ GET /health
 ```http
 POST /trigger-report
 Content-Type: application/json
-
-{
-  "startDate": "2024-01-01",
-  "endDate": "2024-01-31"
-}
 ```
 
 #### 3. Disparar reporte (GET) - Para GitHub Actions
 ```http
-GET /trigger-report?startDate=2024-01-01&endDate=2024-01-31
+GET /trigger-report
 ```
 
-Si no se proporcionan fechas, usa los últimos 7 días por defecto.
+Ambos endpoints generan un reporte con los datos del día actual.
 
 ## Configuración de Email
 
@@ -91,36 +86,48 @@ Cambia `EMAIL_SERVICE` por uno de estos valores:
 - `yahoo`
 - `hotmail`
 
+## Despliegue en Railway
+
+### Despliegue Rápido
+
+1. **Sube tu código a GitHub:**
+```bash
+git add .
+git commit -m "Prepare for Railway deployment"
+git push origin main
+```
+
+2. **Despliega en Railway:**
+   - Ve a [Railway.app](https://railway.app/)
+   - Click en "New Project" → "Deploy from GitHub repo"
+   - Selecciona este repositorio
+   - Railway detectará automáticamente la configuración Node.js
+
+3. **Configura las variables de entorno en Railway:**
+   - Ve a Variables y añade las de `.env.railway.example`
+   - Railway generará automáticamente tu URL
+
+4. **Verifica el despliegue:**
+```bash
+curl https://tu-app.up.railway.app/health
+```
+
+📖 **Ver guía completa:** [RAILWAY_DEPLOY.md](RAILWAY_DEPLOY.md)
+
 ## GitHub Actions
 
-Crea un archivo `.github/workflows/daily-report.yml`:
+El workflow en `.github/workflows/daily-report.yml` dispara reportes automáticos:
 
-```yaml
-name: Daily Report
-
-on:
-  schedule:
-    - cron: '0 9 * * *'  # Diario a las 9 AM UTC
-  workflow_dispatch:     # Permite ejecución manual
-
-jobs:
-  send-report:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Report
-        run: |
-          curl -X GET "https://tu-app.com/trigger-report"
-```
+- Ejecuta diariamente a las 10 PM (hora de Argentina)
+- También se puede ejecutar manualmente desde GitHub
+- Requiere configurar el secret `APP_URL` con tu URL de Railway
 
 ## Personalización
 
 ### Filtrado de datos
-La aplicación busca campos de fecha en este orden:
-1. `date`
-2. `created_at`
-3. `timestamp`
+La aplicación filtra datos del día actual usando el campo `fecha_vigencia` en zona horaria Argentina (UTC-3).
 
-Para usar un campo personalizado, modifica la función `filterDataByDate` en `index.js`.
+Para usar un campo diferente, modifica la función `filterTodayData` en `index.js`.
 
 ### Formato del reporte
 Modifica la función `generateReport` para personalizar el formato del reporte.
@@ -144,16 +151,13 @@ Modifica la función `generateReport` para personalizar el formato del reporte.
 - Verifica que `API_ENDPOINT` sea correcto
 - Comprueba si necesitas `API_KEY` para tu endpoint
 
-### Fechas inválidas
-- Usa formato `YYYY-MM-DD`
-- La fecha de inicio debe ser anterior a la fecha final
 
 ## Logs
 
 La aplicación registra información detallada en la consola:
 - Inicio del workflow
 - Obtención de datos de la API
-- Filtrado por fechas
+- Filtrado de datos del día actual
 - Generación del reporte
 - Envío del email
 

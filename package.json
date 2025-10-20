@@ -1,7 +1,7 @@
 {
   "name": "api-report-mailer",
   "version": "1.0.0",
-  "description": "Node.js application to fetch API data, filter by date, generate reports and send via email",
+  "description": "Node.js application to fetch API data for current day, generate reports and send via email",
   "main": "index.js",
   "type": "module",
   "scripts": {

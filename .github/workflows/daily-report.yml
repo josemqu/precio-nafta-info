@@ -7,15 +7,6 @@ on:
   
   # Permite ejecución manual desde GitHub
   workflow_dispatch:
-    inputs:
-      startDate:
-        description: 'Fecha de inicio (YYYY-MM-DD)'
-        required: false
-        type: string
-      endDate:
-        description: 'Fecha de fin (YYYY-MM-DD)'
-        required: false
-        type: string
 
 jobs:
   send-report:
@@ -24,7 +15,6 @@ jobs:
     steps:
       - name: Send API Report
         run: |
-          # Construir URL con parámetros opcionales
           set -euo pipefail
           BASE_URL="${{ secrets.APP_URL }}"
           # Normalizar para evitar doble '/'
@@ -36,13 +26,8 @@ jobs:
           
           echo "Triggering report at: $URL"
           
-          # Enviar POST (el endpoint acepta POST con JSON body)
-          if [ -n "${{ github.event.inputs.startDate }}" ] && [ -n "${{ github.event.inputs.endDate }}" ]; then
-            payload=$(jq -n --arg s "${{ github.event.inputs.startDate }}" --arg e "${{ github.event.inputs.endDate }}" '{startDate:$s, endDate:$e}')
-            response=$(curl -sS -L -H "Content-Type: application/json" -X POST -d "$payload" -w "HTTPSTATUS:%{http_code}" "$URL")
-          else
-            response=$(curl -sS -L -H "Content-Type: application/json" -X POST -w "HTTPSTATUS:%{http_code}" "$URL")
-          fi
+          # Enviar POST sin parámetros de fecha (el sistema usa la fecha actual)
+          response=$(curl -sS -L -H "Content-Type: application/json" -X POST -w "HTTPSTATUS:%{http_code}" "$URL")
           
           # Extraer código de estado
           http_code=$(echo $response | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
